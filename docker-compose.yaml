@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+
+  cert-generator:
+    image: alpine:latest
+    command: sh -c "apk add --no-cache openssl && mkdir -p /certs && openssl req -x509 -nodes -newkey rsa:2048 -keyout /certs/apache.key -out /certs/apache.crt -days 365 -subj '/CN=localhost'"
+    volumes:
+      - ssl_certs:/certs # Guarda los certificados en el volumen nombrado
+
+  web:
+    build: ./docker/php-apache
+    ports:
+      - "8080:80"
+      - "8443:443"
+    volumes:
+      - ./src:/var/www/html
+      # Monta el volumen donde el generador dejó los certificados
+      - ssl_certs:/etc/ssl/private 
+      # Monta la configuración de Apache para SSL (ver archivo abajo)
+      - ./docker/php-apache/ssl.conf:/etc/apache2/sites-available/000-default-ssl.conf
+    depends_on:
+      - db
+    networks:
+      - app-net
+
+  db:
+    image: mariadb:11.4
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: "Admin123!"
+      MYSQL_DATABASE: ecomerce
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: "Admin123!"
+    volumes:
+      - ./data/mysql:/var/lib/mysql
+    networks:
+      - app-net
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:5.2
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: db
+      PMA_USER: admin
+      PMA_PASSWORD: "Admin123!"
+      PMA_ARBITRARY: 1
+    depends_on:
+      - db
+    networks:
+      - app-net
+
+volumes:
+  ssl_certs: # El volumen nombrado donde vivirán los certificados
+
+networks:
+  app-net:
+    driver: bridge
