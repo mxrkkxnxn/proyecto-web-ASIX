@@ -1,24 +1,31 @@
 <?php
 session_start();
 
-$pdo = new PDO(
-    "mysql:host=db;dbname=ecomerce;charset=utf8mb4",
-    "admin", "Admin123!",
-    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
-);
+// Función de escape para XSS
+function e($str) {
+    return htmlspecialchars($str, ENT_QUOTES, 'UTF-8');
+}
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../login.php');
     exit;
 }
 
+// Conexión directa
+$pdo = new PDO(
+    "mysql:host=db;dbname=ecomerce;charset=utf8mb4",
+    "admin", "Admin123!",
+    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+);
+
+// ✅ CORREGIDO: usar ID del usuario logueado
 $stmt = $pdo->prepare("
     SELECT id, total, metodo, creado, id_transaccion
     FROM pedidos
-    WHERE id_cliente = 1
+    WHERE id_cliente = ?
     ORDER BY creado DESC
 ");
-$stmt->execute();
+$stmt->execute([$_SESSION['user_id']]);
 $pedidos = $stmt->fetchAll();
 ?>
 
@@ -27,7 +34,7 @@ $pedidos = $stmt->fetchAll();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mi Cuenta - eComerce</title>
+    <title><?= e('Mi Cuenta') ?> - eComerce</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -176,9 +183,9 @@ $pedidos = $stmt->fetchAll();
 <body>
     <div class="container">
         <header>
-            <h1>📦 Mi Cuenta</h1>
+            <h1>📦 <?= e('Mi Cuenta') ?></h1>
             <div class="user-info">
-                Bienvenido, <strong><?= htmlspecialchars($_SESSION['user_name'] ?? 'Cliente', ENT_QUOTES, 'UTF-8') ?></strong>
+                Bienvenido, <strong><?= e($_SESSION['user_name'] ?? 'Cliente') ?></strong>
             </div>
         </header>
 
@@ -190,7 +197,7 @@ $pedidos = $stmt->fetchAll();
         <div class="content">
             <?php if (isset($_GET['compra'])): ?>
                 <div class="alert">
-                    ¡Compra realizada con éxito! Pedido #<?= htmlspecialchars($_GET['pedido'], ENT_QUOTES, 'UTF-8') ?>
+                    ¡Compra realizada con éxito! Pedido #<?= e($_GET['pedido']) ?>
                 </div>
             <?php endif; ?>
 
@@ -215,11 +222,11 @@ $pedidos = $stmt->fetchAll();
                     <tbody>
                         <?php foreach ($pedidos as $p): ?>
                         <tr>
-                            <td class="order-id">#<?= htmlspecialchars($p['id'], ENT_QUOTES, 'UTF-8') ?></td>
+                            <td class="order-id">#<?= e($p['id']) ?></td>
                             <td class="price">€<?= number_format($p['total'], 2, ',', '.') ?></td>
                             <td>
                                 <span class="method method-<?= strtolower($p['metodo']) ?>">
-                                    <?= htmlspecialchars($p['metodo'], ENT_QUOTES, 'UTF-8') ?>
+                                    <?= e($p['metodo']) ?>
                                 </span>
                             </td>
                             <td><?= date('d/m/Y H:i', strtotime($p['creado'])) ?></td>

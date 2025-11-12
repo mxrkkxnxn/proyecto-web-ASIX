@@ -50,6 +50,8 @@ if ($_POST) {
                 $_SESSION['es_admin'] = $user['es_admin'];
                 $_SESSION['login_attempts'] = 0;
                 $_SESSION['login_blocked_until'] = 0;
+                
+                // ✅ MOVIDO: session_regenerate_id() DESPUÉS de asignar variables
                 session_regenerate_id(true);
 
                 $redirect = $user['es_admin'] ? 'dashboard/admin/clientes.php' : 'dashboard/cliente.php';
