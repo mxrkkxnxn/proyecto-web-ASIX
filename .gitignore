@@ -1,2 +1,4 @@
 # Ignorar facturas generadas
 src/factura/
+
+data/
